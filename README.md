@@ -1,0 +1,2 @@
+# aws_practice_terraform
+実践AWSの学習用リポジトリ
