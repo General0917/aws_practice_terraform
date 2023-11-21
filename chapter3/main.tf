@@ -95,5 +95,3 @@ module "web_server" {
 output "public_dns" {
   value = module.web_server.public_dns
 }
-
-# 3.8 モジュールから
