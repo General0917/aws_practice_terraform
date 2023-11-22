@@ -1,6 +1,25 @@
+/*
 provider "aws" {
-  region = "ap-northeast-3"
+  region = "ap-northeast-1"
 }
+*/
+
+/*
+data "aws_ami" "recent_amazon_linux_2" {
+  most_recent = true
+  owners = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+}
+*/
 
 /*
 data "aws_ami" "ubuntu" {
@@ -41,9 +60,11 @@ output "example_instance_id" {
 /*
 resource "aws_instance" "example" {
   # ami = data.aws_ami.ubuntu.id
-  ami = "ami-014886dca6bd4bce2"
-  instance_type = var.example_instance_type
+  # ami = data.aws_ami.recent_amazon_linux_2.image_id
+  ami = "ami-0c3fd0f5d33134a76"
+  # instance_type = var.example_instance_type
   # instance_type = local.example_instance_type
+  instance_type = "t3.micro"
   vpc_security_group_ids = [aws_security_group.example_ec2.id]
 
   #   tags = {
@@ -51,13 +72,13 @@ resource "aws_instance" "example" {
   # }
 
   
-  # user_data = <<EOF
-  # #!/bin/bash
-  # yum install -y httpd
-  # systemctl start httpd.service
-  # EOF
+  user_data = <<EOF
+  #!/bin/bash
+  yum install -y httpd
+  systemctl start httpd.service
+EOF
 
-  user_data = file("./user_data.sh")
+  # user_data = file("./user_data.sh")
 }
 */
 

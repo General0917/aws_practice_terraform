@@ -22,7 +22,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "default" {
   # ami = data.aws_ami.ubuntu.id
-  ami = "ami-014886dca6bd4bce2"
+  ami = "ami-0c3fd0f5d33134a76"
   vpc_security_group_ids = [aws_security_group.default.id]
   instance_type = var.instance_type
 
