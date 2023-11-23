@@ -11,7 +11,8 @@ touch main.tf
 ### 2.1.1 HCL(HashiCorp Configuration Language)
 作成したmain.tfをエディタ(VSCode等)で開き、リスト2.1のように実装する。<br />
 このコードではAmazon Linux 2のAMIをベースに、EC2インスタンスを作成する。
-- リスト2.1:EC2インスタンスの定義
+
+リスト2.1:EC2インスタンスの定義
 ```
 resource "aws_instance" "example" {
   ami = "ami-014886dca6bd4bce2"
@@ -109,7 +110,8 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
 ### 2.2.1 リソースの設定変更
 リスト2.1をリスト2.2のように変更し、タグを追加する。
-- リスト2.2:タグを追加
+
+リスト2.2:タグを追加
 ```
 resource "aws_instance" "example" {
   ami = "ami-014886dca6bd4bce2"
@@ -163,7 +165,8 @@ AWSマネジメントコンソールでも、Nameタグの追加が確認でき�
 
 ### 2.2.2 リソースの再作成
 Apacheをインストールするため、リスト2.3のように変更してapplyする。
-- リスト2.3:User DataでApacheをインストール
+
+リスト2.3:User DataでApacheをインストール
 ```
   resource "aws_instance" "example" {
   ami = "ami-014886dca6bd4bce2"

@@ -6,7 +6,8 @@
 
 「***variable***」を使うと変数が定義できる。例えば、example_instance_type変数はリスト3.1のように定義する。<br />
 なお、リスト3.1ではデフォルト値も設定している。Terraform実行時に変数を上書きしない場合は、このデフォルト値が使われる。
-- リスト3.1:変数の定義
+
+リスト3.1:変数の定義
 ```
 variable "example_instance_type" {
   default = "t3.micro"
@@ -36,7 +37,8 @@ $ TF_VAR_example_instance_type=t3.nano terraform plan
 
 「***locals***」を使うとローカル変数が定義できる。リスト3.1をリスト3.2のように変更する。<br />
 variableと異なり、localsはコマンド実行時に上書きされない
-- リスト3.2:ローカル変数の定義
+
+リスト3.2:ローカル変数の定義
 ```
 locals {
   example_instance_type = "t3.micro"
@@ -51,7 +53,8 @@ resource "aws_instance" "example" {
 ## 3.3 出力値
 「***output***」を使うと出力値が定義できる。リスト3.3のように定義すると、<br />
 apply時にターミナルで値を確認したり、「3.8 モジュール」から値を取得する際に使える。
-- リスト3.3:出力値の定義
+
+リスト3.3:出力値の定義
 ```
 resource "aws_instance" "example" {
   ami = "ami-0c3fd0f5d33134a76"
@@ -76,7 +79,8 @@ example_instance_id = "i-00f05f4f060a127b0"
 データソースを使うと外部データを参照することが可能。例えば、<br />
 最新のAmazon Linux 2のAMIリスト3.4のように定義すれば参照可能である。<br />
 少し複雑であるが、filterなどを使って検索条件を指定し、most_recentで最新のAMIを取得しているだけである。
-- リスト3.4:データソースの定義
+
+リスト3.4:データソースの定義
 ```
 data "aws_ami" "recent_amazon_linux_2" {
   most_recent = true
@@ -103,7 +107,8 @@ resource "aws_instance" "example" {
 TerraformではAWSだけでなくGCPやAzureなどにも対応している。そのAPIの違いを吸収するのがプロバイダの役割である。<br />
 実はここまでのコードでは、Terraformが暗黙的にプロバイダを検出していた。<br />
 そこで、今度は明示的にAWSプロバイダを定義する。プロバイダの設定は変更可能で、例えばリスト3.5ではリージョンを指定している。
-- リスト3.5:プロバイダの定義
+
+リスト3.5:プロバイダの定義
 ```
 provider "aws" {
   region = "ap-northeast-1"
@@ -115,7 +120,8 @@ provider "aws" {
 ## 3.6 参照
 第2章のリスト2.3ではApacheをインストールしたEC2インスタンスを作成したが、残念ながらアクセスはできない。<br />
 セキュリティグループが必要である。そこでリスト3.6のように実装し、80番ポートを許可する。
-- リスト3.6:EC2向けセキュリティグループの定義
+
+リスト3.6:EC2向けセキュリティグループの定義
 ```
 resource "aws_security_group" "example_ec2" {
   name = "example-ec2"
@@ -183,7 +189,8 @@ $ curl ec2-18-183-120-9.ap-northeast-1.compute.amazonaws.com
 ## 3.7 組み込み関数
 Terraformには、文字列操作やコレクション操作など、よくある処理が組み込み関数として提供されている。例えば、外部ファイルを読み込むfile関数を使ってみる。<br />
 これまで実装していたmain.tfファイルと同じディレクトリに、「user_data.sh」ファイルを作成し、リスト3.8のようなApacheのインストールスクリプトを実装する。
-- リスト3.8:Apacheのインストール
+
+リスト3.8:Apacheのインストール
 ```
 #!/bin/bash
 yum install -y httpd
@@ -211,11 +218,7 @@ $ New-Item main.tf
 ```
 
 すると、次のようなファイルレイアウトになる。
-```
-|-----http_server
-|       main.tf # モジュールを定義するファイル
-|-----main.tf # モジュールを利用するファイル
-```
+![](picture/module_file_layout.png)
 
 ### 3.8.1 モジュールの定義
 準備ができたので、http_serverディレクトリ配下のmain.tfファイルをエディタで開き、http_serverモジュールを実装する。<br />
@@ -225,7 +228,8 @@ $ New-Item main.tf
 
 出力パラメータ「***public_dns***」: EC2のパブリックDNS
 
-- リスト3.10:HTTPサーバーモジュールの定義
+
+リスト3.10:HTTPサーバーモジュールの定義
 ```
 variable "instance_type" {
   
@@ -274,7 +278,8 @@ $ cd ../
 
 モジュール利用側のmain.tfファイルを開き、リスト3.11のように実装する。利用するモジュールはsourceに指定する。<br />
 2行目のように、リスト3.10を実装したディレクトリを指定する。
-- リスト3.11:HTTPサーバーモジュールの利用
+
+リスト3.11:HTTPサーバーモジュールの利用
 ```
 module "web_server" {
   source = "./http_server"
