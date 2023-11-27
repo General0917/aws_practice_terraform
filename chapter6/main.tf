@@ -1,6 +1,6 @@
 # private用のバケット定義
 resource "aws_s3_bucket" "private" {
-    bucket = "private-pramatic-terraform"
+    bucket = "private-pragmatic1-terraform"
 }
 
 resource "aws_s3_bucket_versioning" "versioning_example" {
@@ -32,7 +32,7 @@ resource "aws_s3_bucket_public_access_block" "private" {
 
 # パブリックバケットの定義
 resource "aws_s3_bucket" "public" {
-  bucket = "public-pramatic-terraform"
+  bucket = "public-pragmatic1-terraform"
 }
 
 resource "aws_s3_bucket_ownership_controls" "example" {
@@ -71,4 +71,48 @@ resource "aws_s3_bucket_acl" "example" {
     aws_s3_bucket_public_access_block.example,
     aws_s3_bucket_cors_configuration.example
   ]
+}
+
+# ログバケットの定義
+resource "aws_s3_bucket" "alb_log" {
+  bucket = "alb-log-pragmatic1-terraform"
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "example" {
+  bucket = aws_s3_bucket.alb_log.id
+
+  rule {
+    id = "rule-1"
+    status = "Enabled"
+
+    expiration {
+      days = 180
+    }
+  }
+}
+
+# バケットポリシーの定義
+resource "aws_s3_bucket_policy" "alb_log" {
+  bucket = aws_s3_bucket.alb_log.id
+  policy = data.aws_iam_policy_document.alb_log.json
+}
+
+data "aws_iam_policy_document" "alb_log" {
+  statement {
+    effect = "Allow"
+    actions = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${aws_s3_bucket.alb_log.id}/*"]
+
+    principals {
+      type = "AWS"
+      identifiers = ["730054542356"] # 自身のAWSアカウントIDを記載する
+    }
+  }
+}
+
+# S3バケットの強制削除
+resource "aws_s3_bucket" "force_destroy" {
+  bucket = "force-destroy-pragmatic1-terraform"
+
+  force_destroy = true
 }

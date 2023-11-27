@@ -119,6 +119,61 @@ AWSの各種サービスがログを保存するためのログバケットを�
 
 リスト6.4: ログバケットの定義
 ```
+resource "aws_s3_bucket" "alb_log" {
+  bucket = "alb-log-pramatic-terraform"
+}
 
+resource "aws_s3_bucket_lifecycle_configuration" "example" {
+  bucket = aws_s3_bucket.alb_log.id
+
+  rule {
+    id = "rule-1"
+    status = "Enabled"
+
+    expiration {
+      days = 180
+    }
+  }
+}
+```
+
+### 6.3.2 バケットポリシー
+バケットポリシーで、S3バケットへのアクセス権を設定する。<br />
+ALBのようなAWSのサービスから、S3へ書き込みを行う場合に必要である。バケットポリシーはリスト6.5のように実装する。<br />
+ALBの場合は、AWSが管理しているアカウントから書き込む。そこで14行目で書き込みを行うアカウントID(************)を指定している。アカウントIDは現在自身が利用(ログイン)しているものを利用し、登録しているリージョンごとに異なるので要注意する。
+
+リスト6.5: バケットポリシーの定義
+```
+resource "aws_s3_bucket_policy" "alb_log" {
+  bucket = aws_s3_bucket.alb_log.id
+  policy = data.aws_iam_policy_document.alb_log.json
+}
+
+data "aws_iam_policy_document" "alb_log" {
+  statement {
+    effect = "Allow"
+    actions = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${aws_s3_bucket.alb_log.id}/*"]
+
+    principals {
+      type = "AWS"
+      identifiers = ["730054542356"] # 自身のAWSアカウントIDを記載する
+    }
+  }
+}
+```
+
+## S3バケットの削除
+S3バケットを削除する場合、バケット内が空になっていることを確認する必要がある。<br />
+バケット内にオブジェクトが残っていると、destroyコマンドでは削除できない。しかし、オブジェクトが残っていても、Terraformで強制的に削除する方法がある。<br />
+リスト6.6のように、force_destroyをtrueにして、一度applyすると、オブジェクトが残っていても、destroyコマンドでS3バケットを削除できるようになる。
+
+リスト6.6: S3バケットの強制削除
+```
+resource "aws_s3_bucket" "force_destroy" {
+  bucket = "force-destroy-pragmatic-terraform"
+
+  force_destroy = true
+}
 ```
 
