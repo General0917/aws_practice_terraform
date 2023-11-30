@@ -412,5 +412,63 @@ security_groupモジュールはリスト7.20のように実装する。入力�
 
 リスト7.20: セキュリティグループモジュールの定義
 ```
+variable "name" {
+  
+}
 
+variable "vpc_id" {
+
+}
+
+variable "port" {
+  
+}
+
+variable "cidr_blocks" {
+    type = list(string) 
+}
+
+resource "aws_security_group" "default" {
+    name = var.name
+    vpc_id = var.vpc_id
+}
+
+resource "aws_security_group_rule" "ingress" {
+    type = "ingress"
+    from_port = var.port
+    to_port = var.port
+    protocol = "tcp"
+    cidr_blocks = var.cidr_blocks
+    security_group_id = aws_security_group.default.id
+}
+
+resource "aws_security_group_rule" "egress" {
+    type = "egress"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    security_group_id = aws_security_group.default.id
+}
+
+output "security_group_id" {
+    value = aws_security_group.default.id
+}
+```
+
+14行目について補足する。Terraformでは、変数の方が定義されていない場合、any型と認識する。<br />
+any型は特殊で、あらゆる型の値を扱える。一方14行目では明示的にlist(string)型を指定し、それ以外の型の値を渡すとエラーで落ちるようにしている。
+
+#### セキュリティグループモジュールの利用
+security_groupモジュールはリスト7.21のように利用する。以降のセキュリティグループの実装では、このモジュールを使用する。
+
+リスト7.21: セキュリティグループモジュールの利用
+```
+module "example_sg" {
+    source = "./security_group"
+    name = "module-sg"
+    vpc_id = aws_vpc.example.id
+    port = 80
+    cidr_blocks = ["0.0.0.0/0"]
+}
 ```
