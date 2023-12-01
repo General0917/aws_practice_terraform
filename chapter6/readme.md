@@ -157,7 +157,7 @@ data "aws_iam_policy_document" "alb_log" {
 
     principals {
       type = "AWS"
-      identifiers = ["730054542356"] # 自身のAWSアカウントIDを記載する
+      identifiers = ["582318560864"] # LBを管理しているAWS東京リージョンのアカウントIDを許可
     }
   }
 }

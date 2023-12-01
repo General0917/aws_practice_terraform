@@ -186,10 +186,21 @@ resource "aws_security_group_rule" "egress_example" {
 }
 
 module "example_sg" {
-    source = "./security_group"
+    source = "../security_group"
     name = "module-sg"
     vpc_id = aws_vpc.example.id
     port = 80
     cidr_blocks = ["0.0.0.0/0"]
 }
 
+output "vpc_id" {
+    value = aws_vpc.example.id
+}
+
+output "aws_subnet_public_0_id" {
+    value = aws_subnet.public_0.id
+}
+
+output "aws_subnet_public_1_id" {
+    value = aws_subnet.public_1.id
+}
