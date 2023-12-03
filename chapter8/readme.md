@@ -64,7 +64,7 @@ resource "aws_lb" "example" {
     load_balancer_type = "application"
     internal = false
     idle_timeout = 60
-    enable_deletion_protection = true
+    enable_deletion_protection = false
 
     subnets = [
         module.vpc.aws_subnet_public_0_id,
@@ -181,9 +181,13 @@ ALBは「HTTP」と「HTTPS」のみサポートしており、protocolで指定
 ```
 $ terraform apply -auto-approve
 
-alb_dns_name = example-1288450637.ap-northeast-1.elb.amazonaws.com
+Apply complete! Resources: 48 added, 0 changed, 0 destroyed.
 
-$ curl example-1288450637.ap-northeast-1.elb.amazonaws.com
+Outputs:
+
+alb_dns_name = "example-1081498324.ap-northeast-1.elb.amazonaws.com"
+
+$ curl example-1081498324.ap-northeast-1.elb.amazonaws.com
 
 
 StatusCode        : 200
@@ -211,3 +215,76 @@ Route 53は、AWSが提供する**DNS(Domain Name System)**のサービスであ
 
 ### 8.3.1 ドメインの登録
 AWSマネジメントコンソールから次の手続きを行うと、ドメインの登録ができる。
+1. ドメインの登録
+2. 連絡先情報の入力
+3. 登録メールアドレスの有効性検証
+
+なお、ドメインの登録は、Terraformでは実行できない。
+
+### 8.3.2 ホストゾーン
+ホストゾーンはDNSレコードを束ねるリソースである。Route 53でドメインを登録した場合は、自動的に作成される。同時にNSレコードとSOAレコードも作成される。本書では、Route 53で「example.com」を登録した前提で説明する。
+
+#### ホストゾーンの参照
+自動作成されたホストゾーンは、リスト8.4のように参照する。
+
+リスト8.4: ホストゾーンのデータソース定義
+```
+data "aws_route53_zone" "example" {
+  name = "example.com"
+}
+```
+
+#### ホストゾーンの作成
+新規にホストゾーンを作成するには、リスト8.5のように定義する。
+
+リスト8.5: ホストゾーンのリソース定義
+```
+resource "aws_route53_zone" "test_example" {
+  name = "test.example.com"
+}
+```
+
+### 8.3.3 DNSレコード
+DNSレコードをリスト8.6のように定義する。これで、設定したドメインでALBへとアクセスできるようになる。
+
+リスト8.6: ALBのDNSレコードの定義
+```
+resource "aws_route53_record" "example" {
+  zone_id = data.aws_route53_zone.example.zone_id
+  name = data.aws_route53_zone.example.name
+  type = "A"
+
+  alias {
+    name = aws_lb.example.dns_name
+    zone_id = aws_lb.example.zone_id
+    evaluate_target_health = true
+  }
+}
+
+output "domain_name" {
+  value = aws_route53_record.example.name
+}
+```
+
+#### DNSレコードタイプ
+DNSレコードタイプはtypeに設定する。AレコードやCNAMEレコードなど、一般的なレコードタイプが指定可能である。AWS独自拡張のALIASレコードを使用する場合は、Aレコードを表す「A」を指定する。
+
+#### ALIASレコード
+ALIASレコードは、AWSでのみ使用可能なDNSレコードである。DNSから見ると、単なるAレコードという扱いになる。ALIASレコードは、AWSの各種サービスと統合されており、ALBだけでなくS3バケットやCloudFrontも指定できる。<br />
+CNAMEレコードは、「ドメイン名→CNAMEレコードのドメイン名→IPアドレス」という流れで名前解決を行う。一方、ALIASレコードは、「ドメイン名→IPアドレス」という流れで名前解決が行われ、パフォーマンスが向上する。aliasにALBのDNS名とゾーンIDを指定すると、ALBのIPアドレスへ名前解決できるようになる。
+
+### 8.3.4 独自ドメインへのアクセス
+リスト8.1からリスト8.6をapplyする。
+
+```
+$ terraform apply -auto-approve
+
+Apply complete! Resources: 50 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+alb_dns_name = "example-1274028736.ap-northeast-1.elb.amazonaws.com"
+domain_name = "sample0917.com"
+
+$ 
+```
