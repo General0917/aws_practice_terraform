@@ -186,8 +186,12 @@ Apply complete! Resources: 48 added, 0 changed, 0 destroyed.
 Outputs:
 
 alb_dns_name = "example-1081498324.ap-northeast-1.elb.amazonaws.com"
+```
 
-$ curl example-1081498324.ap-northeast-1.elb.amazonaws.com
+出力されたalb_dns_nameに、HTTPでアクセスする。
+
+```
+$ curl http://example-1081498324.ap-northeast-1.elb.amazonaws.com
 
 
 StatusCode        : 200
@@ -275,6 +279,7 @@ CNAMEレコードは、「ドメイン名→CNAMEレコードのドメイン名�
 
 ### 8.3.4 独自ドメインへのアクセス
 リスト8.1からリスト8.6をapplyする。
+applyする前に、AWSマネジメントコンソールからRoute 53を利用して、ドメイン登録を行う必要がある！！
 
 ```
 $ terraform apply -auto-approve
@@ -283,8 +288,37 @@ Apply complete! Resources: 50 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-alb_dns_name = "example-1274028736.ap-northeast-1.elb.amazonaws.com"
+alb_dns_name = "example-171455711.ap-northeast-1.elb.amazonaws.com"
 domain_name = "sample0917.com"
-
-$ 
 ```
+
+出力されたdomain_nameに、HTTPでアクセスする。
+
+```
+
+$ curl http://sample0917.com
+
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : これは『HTTP』である。
+RawContent        : HTTP/1.1 200 OK
+                    Connection: keep-alive
+                    Content-Length: 31
+                    Content-Type: text/plain; charset=utf-8
+                    Date: Sun, 03 Dec 2023 21:24:00 GMT
+                    Server: awselb/2.0
+
+                    これは『HTTP』である。
+Forms             : {}
+Headers           : {[Connection, keep-alive], [Content-Length, 31], [Content-Type, text/plain; charset=utf-8], [Date, Sun, 03 Dec 2023 21:24:00 GMT]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 31
+```
+
+「8.2.3 HTTPアクセス」と同様に表示されれば成功である。
+
+## 8.4 ACM(AWS Certificate Manager)
