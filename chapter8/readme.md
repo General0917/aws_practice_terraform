@@ -279,7 +279,9 @@ CNAMEレコードは、「ドメイン名→CNAMEレコードのドメイン名�
 
 ### 8.3.4 独自ドメインへのアクセス
 リスト8.1からリスト8.6をapplyする。
-applyする前に、AWSマネジメントコンソールからRoute 53を利用して、ドメイン登録を行う必要がある！！
+applyする前に、AWSマネジメントコンソールからRoute 53を利用して、ドメイン登録を行う必要がある！！<br />
+しかし、ドメインと登録する場合は、コスト(料金)がかかるので、注意が必要。<br />
+ドメインをすぐに削除しても、返金はされない。
 
 ```
 $ terraform apply -auto-approve
@@ -322,3 +324,268 @@ RawContentLength  : 31
 「8.2.3 HTTPアクセス」と同様に表示されれば成功である。
 
 ## 8.4 ACM(AWS Certificate Manager)
+次に、HTTPS化するために必要なSSL証明書を、**ACM(AWS Certificate Manager)**で作成する。ACMは煩雑なSSL証明書の管理を担ってくれるマネージドサービスで、ドメイン検証をサポートしている。SSL証明書の自動更新ができるため「証明書の更新を忘れた！！」という幾度となく人類が繰り返してきた悲劇から解放される。
+
+### 8.4.1 SSL証明書の作成
+SSL証明書は、リスト8.7のように定義する。
+
+リスト8.7: SSL証明書の定義
+```
+resource "aws_acm_certificate" "example" {
+  domain_name = aws_route53_record.example.name
+  subject_alternative_names = []
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
+#### ドメイン名
+ドメイン名はdomain_nameで設定する。なお、「*.example.com」のように指定すると、ワイルドカード証明書を発行可能である。
+
+#### ドメイン名の追加
+ドメイン名を追加したい場合、subject_alternative_namesを設定する。例えば、「"test.example.com"」と指定すると、「example.com」と「test.example.com」のSSL証明書を作成する。追加しない場合は、空リストを作成する。
+
+#### 検証方法
+ドメインの所有権の検証方法を、validation_methodで設定する。DNS検証かEメール検証を選択可能。SSL証明書を自動更新したい場合、DNS検証を選択する。
+
+#### ライフサイクル
+lifecycle定義で「新しいSSL証明書を作ってから、古いSSL証明書と差し替える」という挙動に変更し、SSL証明書の再作成時のサービス影響を最小化する。<br />
+ライフサイクルはTerraform独自の機能で、すべてのリソースに設定可能である。通常のリソースの再作成は、「リソースを削除してから、リソースを削除する」という挙動になる。しかし、create_before_destroyをtrueにすると、「リソースを作成してから、リソースを削除する」という逆の挙動に変更可能である。
+
+### 8.4.2 SSL証明書の検証
+DNSによる、SSL証明書の検証もTerraformで実装可能である。
+
+#### 検証用のDNSレコード
+DNS検証用のDNSレコードを追加する。リスト8.8のように、設定する値の大半はaws_acm_certificateリソースから参照する。なお、リスト8.7でsubject_alternative_namesにドメインを追加した場合、そのドメイン用のDNSレコードも必要になるので注意が必要である。
+
+SSL証明書の検証用レコードの追加する場合は、以下のドキュメントを参考に作成するとよい。
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate#referencing-domain_validation_options-with-for_each-based-resources
+
+リスト8.8: SSL証明書の検証用レコードの定義
+```
+resource "aws_route53_record" "example_certificate" {
+  for_each = {
+    for dvo in aws_acm_certificate.example.domain_validation_options : dvo.domain_name => {
+      name = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type = dvo.resource_record_type
+    }
+  }
+  name = each.value.name
+  type = each.value.type
+  records = [each.value.record]
+  zone_id = data.aws_route53_zone.example.id
+  ttl = 60
+}
+```
+
+#### 検証の待機
+aws_acm_certificate.validationリソースは特殊で、リスト8.9のように定義すると、apply時にSSL証明書の検証が完了するまで待機する。実際になにかのリソースを作るわけではない。
+
+以下のドキュメントを参考にリソースを作成するとよい。
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/acm_certificate_validation#dns-validation-with-route-53
+
+リスト8.9: SSL証明書の検証完了までの待機
+```
+resource "aws_acm_certificate_validation" "example" {
+  certificate_arn = aws_acm_certificate.example.arn
+  validation_record_fqdns = [for record in aws_route53_record.example_certificate : record.fqdn]
+}
+```
+
+## 8.5 HTTPS用ロードバランサー
+SSL証明書を発行したので、HTTPSでALBにアクセスできるようHTTPSリスナーを作成する。
+
+### 8.5.1 HTTPSリスナー
+HTTPSリスナーは、リスト8.10のように定義する。
+
+リスト8.10: HTTPSリスナーの定義
+```
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.example.arn
+  port = "443"
+  protocol = "HTTPS"
+  certificate_arn = aws_acm_certificate.example.arn
+  ssl_policy = "ELBSecurityPolicy-2016-08"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "これは『HTTPS』である。"
+      status_code = "200"
+    }
+  }
+}
+```
+
+#### ポート番号とプロトコル
+portとprotocolに、それぞれ「443」と「HTTPS」を指定する。
+
+#### SSL証明書
+リスト8.7で作成したSSL証明書を、certificate_arnに指定する。
+
+#### セキュリティポリシー
+ssl_policyに「ELBSecurityPolicy-2016-08」を指定する。AWSでは、このセキュリティポリシーの利用が推奨されている。
+
+### 8.5.2 HTTPのリダイレクト
+HTTPをHTTPSへリダイレクトするために、リダイレクトリスナーを作成する。リスト8.11のように、default_actionでredirectの設定をするだけである。
+
+リスト8.11: HTTPSからHTTPSにリダイレクトするリスナーの定義
+```
+resource "aws_lb_listener" "redirect_http_to_https" {
+  load_balancer_arn = aws_lb.example.arn
+  port = "8080"
+  protocol = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port = "443"
+      protocol = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+```
+
+### 8.5.3 HTTPSアクセス
+リスト8.1からリスト8.11をapplyして、HTTPSでアクセスする。リスト8.10の13行目で定義した文字列が表示されれば成功である。
+```
+$ curl https://sample0917.com
+
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : これは『HTTPS』である。
+RawContent        : HTTP/1.1 200 OK
+                    Connection: keep-alive
+                    Content-Length: 32
+                    Content-Type: text/plain; charset=utf-8
+                    Date: Mon, 04 Dec 2023 18:10:09 GMT
+                    Server: awselb/2.0
+
+                    これは『HTTPS』である。
+Forms             : {}
+Headers           : {[Connection, keep-alive], [Content-Length, 32], [Content-Type, text/plain; charset=utf-8], [Date, Mon, 04 Dec 2023 18:10:09 GMT]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 32
+```
+
+次に、HTTPからHTTPSへのリダイレクトを確認する。ポート番号はリスト8.11で設定した8080番である。オプションなしでcurlを実行すると、301で返ってくる。
+```
+$ curl http://sample0917.com:8080
+<html>
+<head><title>301 Moved Permanently</title></head>
+<body>
+<center><h1>301 Moved Permanently</h1></center>
+</body>
+</html>
+```
+
+今度はcurlに-Lオプションをつけて実行する。
+```
+$ curl -L http://sample0917.com:8080
+
+これは『HTTPS』である。
+```
+
+すると、正しくHTTPSへリダイレクトしていることを確認できる。
+
+## 8.6 リクエストフォワーディング
+最後に任意のターゲットへ、リクエストをフォワードできるようにする。
+
+### 8.6.1 ターゲットグループ
+ALBがリクエストをフォワードする対象を「ターゲットグループ」と呼び、リスト8.12のように定義する。このターゲットグループは、第9章のECSサービスと関連付ける。
+
+リスト8.12: ターゲットグループの定義
+```
+resource "aws_lb_target_group" "example" {
+  name = "example"
+  target_type = "ip"
+  vpc_id = module.vpc.vpc_id
+  port = 80
+  protocol = "HTTP"
+  deregistration_delay = 300
+
+  health_check {
+    path = "/"
+    healthy_threshold = 5
+    unhealthy_threshold = 2
+    timeout = 5
+    interval = 30
+    matcher = 200
+    port = "traffic-port"
+    protocol = "HTTP"
+  }
+
+  depends_on = [aws_lb.example]
+}
+```
+
+#### ターゲットタイプ
+ターゲットの種類をtarget_typで設定する。EC2インスタンスやIPアドレス、Lambda関数などが指定できる。ECS Fargateでは「ip」を指定する。
+
+#### ルーティング先
+ターゲットグループにipを指定した場合はさらに、vpc_id・port・protocolを設定する。多くの場合は、HTTPSの終端はALBで行うため、protocolには「HTTP」を指定することが多い。
+
+#### 登録解除の待機時間
+ターゲットの登録を解除する前に、ALBが待機する時間をderegistration_delayで設定する。秒単位で指定し、デフォルト値は300秒である。
+
+#### ヘルスチェック
+health_checkで設定する項目は、次のとおりである。
+- **path** : ヘルスチェックで使用するパス
+- **healthy_threshold** : 正常判定を行うまでのヘルスチェック実行回数
+- **unhealthy_threshold** : 異常判定を行うまでのヘルスチェック実行回数
+- **timeout** : ヘルスチェックのタイムアウト時間(秒)
+- **interval** : ヘルスチェックの実行間隔(秒)
+- **matcher** : 正常判定を行うために使用するHTTPステータスコード
+- **port** : ヘルスチェックで使用するポート
+- **protocol** : ヘルスチェック時に使用するプロトコル
+
+なお、health_checkのportを16行目のように「traffic-port」と指定した場合、5行目で指定したポート番号が使われる。
+
+#### 暗黙的な依存関係
+リスト8.1のアプリケーションロードバランサーとターゲットグループを、第9章で登場するECSサービスと同時に作成するとエラーになる。そこで、20行目のdepends_onで依存関係を制御するワークアラウンドを追加し、エラーを回避する。
+
+### 8.6.2 リスナールール
+ターゲットグループにリクエストをフォワードするリスナールールを作成する。リスナールールはリスト8.13のように定義する。
+
+リスト8.13: リスナールールの定義
+```
+resource "aws_lb_listener_rule" "example" {
+  listener_arn = aws_lb_listener.https.arn
+  priority = 100
+
+  action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+```
+
+#### 優先順位
+リスナールールは複数定義でき、優先順位をpriorityで設定する。数字が小さいほど、優先順位が高い。なお、デフォルトルートはもっとも優先順位が低い。
+
+#### アクション
+actionで、フォワード先のターゲットグループを設定する。
+
+#### 条件
+conditionには、「/img/*」のようなパスベースや「example.com」のようなホストベースなどで、条件を指定できる。「/*」は全てのパスでマッチする。
+
+#### ALBの削除
+リスト8.1で作成したALBを削除する場合、destroyコマンドを実行する前に、削除保護を無効にする。そのためには、enable_deletion_protectionをfalseにして一度applyする。するとALBが削除できるようになる。

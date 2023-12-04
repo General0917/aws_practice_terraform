@@ -92,6 +92,7 @@ module "http_redirect_sg" {
     cidr_blocks = ["0.0.0.0/0"]
 }
 
+# ALBの定義
 resource "aws_lb_listener" "http" {
     load_balancer_arn = aws_lb.example.arn
     port = "80"
@@ -108,6 +109,7 @@ resource "aws_lb_listener" "http" {
     }
 }
 
+# route 53(DNS)のzoneと、レコード定義
 data "aws_route53_zone" "example" {
   name = "sample0917.com"
 }
@@ -132,3 +134,111 @@ output "domain_name" {
   value = aws_route53_record.example.name
 }
 
+# SSL証明書の定義
+resource "aws_acm_certificate" "example" {
+  domain_name = aws_route53_record.example.name
+  subject_alternative_names = []
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# SSL証明書の検証用レコードの定義
+resource "aws_route53_record" "example_certificate" {
+  for_each = {
+    for dvo in aws_acm_certificate.example.domain_validation_options : dvo.domain_name => {
+      name = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type = dvo.resource_record_type
+    }
+  }
+  name = each.value.name
+  type = each.value.type
+  records = [each.value.record]
+  zone_id = data.aws_route53_zone.example.id
+  ttl = 60
+}
+
+# SSL証明書の検証完了までの待機
+resource "aws_acm_certificate_validation" "example" {
+  certificate_arn = aws_acm_certificate.example.arn
+  validation_record_fqdns = [for record in aws_route53_record.example_certificate : record.fqdn]
+}
+
+# HTTPSリスナーの定義
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.example.arn
+  port = "443"
+  protocol = "HTTPS"
+  certificate_arn = aws_acm_certificate.example.arn
+  ssl_policy = "ELBSecurityPolicy-2016-08"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "これは『HTTPS』である。"
+      status_code = "200"
+    }
+  }
+}
+
+# HTTPSからHTTPSにリダイレクトするリスナーの定義
+resource "aws_lb_listener" "redirect_http_to_https" {
+  load_balancer_arn = aws_lb.example.arn
+  port = "8080"
+  protocol = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port = "443"
+      protocol = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# ターゲットグループの定義
+resource "aws_lb_target_group" "example" {
+  name = "example"
+  target_type = "ip"
+  vpc_id = module.vpc.vpc_id
+  port = 80
+  protocol = "HTTP"
+  deregistration_delay = 300
+
+  health_check {
+    path = "/"
+    healthy_threshold = 5
+    unhealthy_threshold = 2
+    timeout = 5
+    interval = 30
+    matcher = 200
+    port = "traffic-port"
+    protocol = "HTTP"
+  }
+
+  depends_on = [aws_lb.example]
+}
+
+# リスナールールの定義
+resource "aws_lb_listener_rule" "example" {
+  listener_arn = aws_lb_listener.https.arn
+  priority = 100
+
+  action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
