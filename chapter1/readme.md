@@ -1,5 +1,5 @@
 # 第1章　セットアップ
-本書では、Windowsを前提に、AWSとTerraformのセットアップを行う。<br />
+本章では、Windowsを前提に、AWSとTerraformのセットアップを行う。<br />
 Terraform専用のIAMユーザーを作成してアクセスキーを払い出し、AWS CLIとTerraformをインストールする。
 
 ## 1.1 AWS
