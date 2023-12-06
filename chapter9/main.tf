@@ -1,5 +1,5 @@
 module "loadbalancer" {
-    source = "./loadbalancer"
+  source = "./loadbalancer"
 }
 
 # ECSクラスタの定義
@@ -53,4 +53,12 @@ module "nginx_sg" {
     vpc_id = module.loadbalancer.vpc_id
     port = 80
     cidr_blocks = [module.loadbalancer.aws_vpc_example_cidr_block]
+}
+
+output "alb_dns_name" {
+  value = module.loadbalancer.alb_dns_name
+}
+
+output "domain_name" {
+  value = module.loadbalancer.domain_name
 }

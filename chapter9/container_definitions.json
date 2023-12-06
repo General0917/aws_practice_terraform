@@ -1,7 +1,7 @@
 [
     {
         "name": "example",
-        "image": "nginx/latest",
+        "image": "nginx:latest",
         "essential": true,
         "portMappings": [
             {

@@ -186,7 +186,7 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# HTTPSからHTTPSにリダイレクトするリスナーの定義
+# HTTPからHTTPSにリダイレクトするリスナーの定義
 resource "aws_lb_listener" "redirect_http_to_https" {
   load_balancer_arn = aws_lb.example.arn
   port = "8080"
