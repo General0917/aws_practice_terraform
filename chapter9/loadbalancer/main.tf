@@ -184,6 +184,8 @@ resource "aws_lb_listener" "https" {
       status_code = "200"
     }
   }
+
+  depends_on = [ aws_acm_certificate_validation.example ]
 }
 
 # HTTPからHTTPSにリダイレクトするリスナーの定義

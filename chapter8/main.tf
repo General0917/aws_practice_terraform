@@ -184,6 +184,10 @@ resource "aws_lb_listener" "https" {
       status_code = "200"
     }
   }
+
+  depends_on = [
+    aws_acm_certificate_validation.example
+  ]
 }
 
 # HTTPからHTTPSにリダイレクトするリスナーの定義
@@ -203,6 +207,8 @@ resource "aws_lb_listener" "redirect_http_to_https" {
   }
 }
 
+# 以下のリソースを定義してデプロイしてしまうと、HTTPSのリスナールールが変更され、HTTPSではアクセスできなくなるので、検証をする際にはコメントアウトしておく。
+/*
 # ターゲットグループの定義
 resource "aws_lb_target_group" "example" {
   name = "example"
@@ -242,3 +248,4 @@ resource "aws_lb_listener_rule" "example" {
     }
   }
 }
+*/
