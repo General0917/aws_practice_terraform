@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"ecs","Source":"./ecs","Dir":"ECS"},{"Key":"ecs.ecs_task_execution_role","Source":"../iam_role","Dir":"iam_role"},{"Key":"ecs_events_role","Source":"./iam_role","Dir":"iam_role"}]}
