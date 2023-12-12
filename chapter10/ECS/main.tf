@@ -2,11 +2,14 @@
 module "loadbalancer" {
   source = "./loadbalancer"
 }
+*/
 
 # ECSクラスタの定義
 resource "aws_ecs_cluster" "example" {
   name = "example"
 }
+
+/*
 
 # タスク定義
 # resource "aws_ecs_task_definition" "example" {
@@ -110,5 +113,9 @@ module "ecs_task_execution_role" {
 }
 
 output "aws_iam_policy_document_ecs_task_execution" {
-    value = module.ecs_task_execution_role.iam_role_arn
+  value = module.ecs_task_execution_role.iam_role_arn
+}
+
+output "aws_ecs_cluster_example_name" {
+  value = aws_ecs_cluster.example.arn
 }

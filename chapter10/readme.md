@@ -135,3 +135,64 @@ schedule_expressionは、cron式とrate式をサポートしている。
 - **rate式** : 「rate(5 minutes)」のように記述する。単位は『1の場合は単数形、それ以外は複数形』で記載する。つまり、「rate(1 hours)」や「rate(5 hour)」のように記載することができないので、注意が必要である。
 
 ### 10.2.4 CloudWatchイベントターゲット
+リスト10.6のようにCloudWatchイベントターゲットで、実行対象のジョブを定義する。ECS Scheduled Tasksの場合は、タスク定義をターゲットに設定する。
+
+リスト10.6: CloudWatchイベントターゲットの定義
+```
+resource "aws_cloudwatch_event_target" "example_batch" {
+  target_id = "example-batch"
+  rule = aws_cloudwatch_event_rule.example_batch.name
+  role_arn = module.ecs_events_role.iam_role_arn
+  arn = module.ecs.aws_ecs_cluster_example_name
+
+  ecs_target {
+    launch_type = "FARGATE"
+    task_count = 1
+    platform_version = "1.3.0"
+    task_definition_arn = aws_ecs_task_definition.example_batch.arn
+
+    network_configuration {
+      assign_public_ip = false
+      subnets = [module.vpc.aws_subnet_private_0_id]
+    }
+  }
+}
+```
+
+#### ルール
+ruleにリスト10.5で作成したCloudWatchイベントルールを設定する。これで定期的に、CloudWatchイベントターゲットが実行される。
+
+#### IAMロール
+role_arnにリスト10.4で作成したCloudWatchイベントをIAMロールを設定する。
+
+#### ターゲット
+ターゲットをarnで設定する。ECS Scheduled TasksではECSクラスタを指定する。さらにecs_targetで、タスクの実行の設定を行う。ecs_targetには、ロードバランサやヘルスチェックの設定はないが、それ以外はリスト9.4で実装したECSサービスとほぼ同じである。
+
+### 10.2.5 バッチの動作確認
+filter-log-eventsコマンドを使って動作を確認する
+
+```
+$ aws logs filter-log-events --log-group-name /ecs-scheduled-tasks/example
+
+{
+    "events": [
+        {
+            "logStreamName": "batch/alpine/2fed933435504a6eb78eafdf8d7ce3bd",
+            "timestamp": 1702418941909,
+            "message": "Tue Dec 12 22:09:01 UTC 2023",
+            "ingestionTime": 1702418941970,
+            "eventId": "37965211044664715592205765265801249782270004829975085056"
+        },
+        {
+            "logStreamName": "batch/alpine/69accbb459644dfbbd4edab57b84a83e",
+            "timestamp": 1702419063736,
+            "message": "Tue Dec 12 22:11:03 UTC 2023",
+            "ingestionTime": 1702419063797,
+            "eventId": "37965213761497600893595990876952708613306304161395703808"
+        }
+    ],
+    "searchedLogStreams": []
+}
+```
+
+正しく設定されていれば、2分ごとにdateコマンドの出力結果が表示されていることが確認できる。
