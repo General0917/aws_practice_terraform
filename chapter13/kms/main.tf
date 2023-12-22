@@ -1,0 +1,17 @@
+# カスタマーマスターキーの定義
+resource "aws_kms_key" "example" {
+  description = "Example Customer Master Key"
+  enable_key_rotation = true
+  is_enabled = true
+  deletion_window_in_days = 30
+}
+
+# エイリアスの定義
+resource "aws_kms_alias" "example" {
+  name = "alias/example"
+  target_key_id = aws_kms_key.example.key_id
+}
+
+output "kms_key" {
+    value = aws_kms_alias.example.arn
+}
