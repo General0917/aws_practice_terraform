@@ -85,3 +85,25 @@ module "mysql_sg" {
   port = 3306
   cidr_blocks = [module.vpc.aws_vpc_example_cidr_block]
 }
+
+# ElastiCacheパラメータグループの定義
+resource "aws_elasticache_parameter_group" "example" {
+  name = "example"
+  family = "redis5.0"
+
+  parameter {
+    name = "cluster-enabled"
+    value = "no"
+  }
+}
+
+# ElastiCacheサブネットグループの定義
+resource "aws_elasticache_subnet_group" "example" {
+  name = "example"
+  subnet_ids = [
+    module.vpc.aws_subnet_private_0_id,
+    module.vpc.aws_subnet_private_1_id
+  ]
+}
+
+# ElastiCacheレプリケーショングループの定義

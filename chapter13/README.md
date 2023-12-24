@@ -186,3 +186,42 @@ $ aws rds modify-db-instance --db-instance-identifier 'example' --master-user-pa
 まずは、deletion_protectionをfalseにして、削除保護を無効にする。次にskip_final_snapshotをtrueにして、スナップショットの作成をスキップする。この状態で1度applyする。すると、destroyコマンドでDBインスタンスを削除できるようになる。
 
 ## 13.2 ElastiCache
+ElastiCacheはMemcachedとRedisをサポートしている。本書ではRedisを作成する。なお、Redisでは最初に、クラスタモードを有効にするかを決める。ここではコストの低い「**クラスタモード無効**」を採用する。
+
+### 13.2.1 ElastiCacheパラメータグループ
+Redisの設定は、ElastiCacheパラメータグループで行う。例えばリスト13.6では、「クラスタモードを無効にする」設定を定義している。
+
+リスト13.6: ElastiCacheパラメータグループの定義
+```
+resource "aws_elasticache_parameter_group" "example" {
+  name = "example"
+  family = "redis5.0"
+
+  parameter {
+    name = "cluster-enabled"
+    value = "no"
+  }
+}
+```
+
+### 13.2.2 ElastiCacheサブネットグループ
+リスト13.7のように、ElastiCacheサブネットグループを定義する。RDSと同様に、プライベートサブネットを指定し、異なるアベイラビリティゾーンのものを含める。これは、「13.2.3 ElastiCacheレプリケーショングループ」の自動フェイルオーバー設定で必要になる。
+
+リスト13.7: ElastiCacheサブネットグループの定義
+```
+resource "aws_elasticache_subnet_group" "example" {
+  name = "example"
+  subnet_ids = [
+    module.vpc.aws_subnet_private_0_id,
+    module.vpc.aws_subnet_private_1_id
+  ]
+}
+```
+
+### 13.2.3 ElastiCacheレプリケーショングループ
+ElastiCacheレプリケーショングループをリスト13.8のように実装し、Redisサーバーを作成する。
+
+リスト13.8: ElastiCacheレプリケーショングループの定義
+```
+
+```
