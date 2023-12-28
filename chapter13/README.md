@@ -243,3 +243,50 @@ resource "aws_elasticache_replication_group" "example" {
 ```
 
 #### 識別子
+replication_group_idに、Redisのエンドポイントで使う識別子を設定する。
+
+#### 概要
+descriptionに、Redisの概要を記述する。
+
+#### エンジン
+engineには「memcached」か「redis」を設定する。<br />
+また、engine_versionで使用するバージョンを指定する。
+
+#### ノード
+num_cache_clustersでノード数を指定する。ノード数はプライマリノードとレプリカノードの合計値である。<br />
+例えば、「3」を指定した場合は、プライマリノードがひとつ、レプリカノードがふたつという意味になる。<br />
+また、node_typeでノードの種類を指定する。ノードの種類によってCPU・メモリ・ネットワーク帯域のサイズが異なる。様々な種類があるため、要件に合わせて指定する。
+
+#### スナップショット
+ElastiCacheでは、スナップショット作成が毎日行われる。snapshot_windowで作成タイミングを指定する。設定は**UTC**で行う必要がある。<br />
+また、スナップショット保持期間をsnapshot_retention_limitで設定可能である。キャッシュとして利用する場合、長期保存は不要である。
+
+#### メンテナンス
+ElastiCacheではメンテナンスが定期的行われる。maintenance_windowでメンテナンスのタイミングを設定する。バックアップ同様に、**UTC**で設定する。
+
+#### 自動フェイルオーバー
+automatic_failover_enabledをtrueにすると、自動フェイルオーバーが有効になる。なお、リスト13.7で、マルチAZ化していることが前提である。
+
+#### ポート番号
+portでポート番号を設定する。Redisのデフォルトポートは6379である。
+
+#### 設定変更タイミング
+apply_immediatelyで、ElastiCacheの設定変更のタイミングを制御する。RDSと同様に、設定変更のタイミングには「即時」と「メンテナンスウィンドウ」がある。予期せぬダウンタイムを避けるため、falseにして、メンテナンスウィンドウで設定変更を行うようにする。
+
+#### セキュリティグループ
+リスト13.9のように、VPC内からの通信のみ許可する。そして、作成したセキュリティグループを、リスト13.8のsecurity_group_idsに設定する。
+
+リスト13.9: ElastiCacheレプリケーショングループのセキュリティグループの定義
+```
+module "redis_sg" {
+  source = "./security_group"
+  name = "redis-sg"
+  vpc_id = module.vpc.vpc_id
+  port = 6379
+  cidr_blocks = [module.vpc.aws_vpc_example_cidr_block]
+}
+```
+
+#### スローapply問題
+本章で登場したRDSやElastiCacheのapplyには時間がかかる。一度applyするだけで10分以上、場合によっては30分越えということもある。<br />
+経験則上、低スペックなT2系、T3系のインスタンスタイプで作成しようとすると、apply時間が上振れしやすい。Terraformで試行錯誤するときには、ケチケチせずそれなりのインスタンスタイプを使用した方がよい。

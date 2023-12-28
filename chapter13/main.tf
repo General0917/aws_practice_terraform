@@ -125,6 +125,7 @@ resource "aws_elasticache_replication_group" "example" {
   subnet_group_name = aws_elasticache_subnet_group.example.name
 }
 
+# ElastiCacheレプリケーショングループのセキュリティグループの定義
 module "redis_sg" {
   source = "./security_group"
   name = "redis-sg"
