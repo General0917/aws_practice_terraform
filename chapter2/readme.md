@@ -105,6 +105,11 @@ aws_instance.example: Creation complete after 12s [id=i-0e0d1531679fe992b]
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 ```
 
+他にも、一部のリソースまたは、moduleのみをapplyさせたい場合は、コマンドの末尾に、`--target=リソース名 or module名`を付け加えると、指定したリソースまたは、moduleのみapplyすることが可能
+```
+$ terraform apply --target=module.vpc --target=aws_subnet.public
+```
+
 ## リソースの更新
 リソースの作成に成功したら、設定値を変更してみる。
 
