@@ -111,9 +111,9 @@ resource "aws_elasticache_replication_group" "example" {
   replication_group_id = "example"
   description = "Cluster Disabled"
   engine = "redis"
-  engine_version = "5.0.4"
+  engine_version = "5.0.6"
   num_cache_clusters = 3
-  node_type = "cache.m3.medium"
+  node_type = "cache.t4g.micro"
   snapshot_window = "09:10-10:10"
   snapshot_retention_limit = 7
   maintenance_window = "mon:10:40-mon:11:40"

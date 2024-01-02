@@ -193,6 +193,7 @@ module "example_sg" {
     cidr_blocks = ["0.0.0.0/0"]
 }
 
+/*
 output "vpc_id" {
     value = aws_vpc.example.id
 }
@@ -216,3 +217,4 @@ output "aws_subnet_private_1_id" {
 output "aws_vpc_example_cidr_block" {
     value = aws_vpc.example.cidr_block
 }
+*/
