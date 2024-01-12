@@ -76,6 +76,9 @@ resource "aws_codebuild_project" "example" {
 
   source {
     type = "CODEPIPELINE"
+    location = "aws_practice_terraform"
+    git_clone_depth = 1
+    buildspec = "./buildspec.yaml"
   }
 
   artifacts {
