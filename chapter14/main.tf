@@ -172,7 +172,7 @@ resource "aws_codepipeline" "example" {
 
       configuration = {
         Owner = "General0917"
-        Repo = "aws_practice_terraform"
+        Repo = "aws_practice_terraform/chapter14"
         Branch = "master"
         PollForSourceChanges = false
         OAuthToken = data.aws_ssm_parameter.github_token.value
