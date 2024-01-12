@@ -145,7 +145,7 @@ resource "aws_ssm_parameter" "secret" {
   name        = "/continuous_apply/github_token"
   description = "The parameter description"
   type        = "String"
-  insecure_value = "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"
+  insecure_value = "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"
 }
 
 data "aws_ssm_parameter" "github_token" {
@@ -252,7 +252,7 @@ output "random_id_output" {
 # GitHubプロバイダの定義
 provider "github" {
   owner = "General0917"
-  token = "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"
+  token = "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"
 }
 
 # GitHub Webhookの定義
