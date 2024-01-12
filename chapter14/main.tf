@@ -76,9 +76,6 @@ resource "aws_codebuild_project" "example" {
 
   source {
     type = "CODEPIPELINE"
-    location = "aws_practice_terraform"
-    git_clone_depth = 1
-    buildspec = "./buildspec.yaml"
   }
 
   artifacts {
@@ -172,7 +169,7 @@ resource "aws_codepipeline" "example" {
 
       configuration = {
         Owner = "General0917"
-        Repo = "aws_practice_terraform/chapter14"
+        Repo = "aws_practice_terraform"
         Branch = "master"
         PollForSourceChanges = false
         OAuthToken = data.aws_ssm_parameter.github_token.value
