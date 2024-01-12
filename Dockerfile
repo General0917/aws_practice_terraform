@@ -1,18 +1,14 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:latest
+# ベースイメージとしてUbuntuを指定
+FROM ubuntu:20.04
 
-# Install dependencies
-RUN yum update -y && \
- yum install -y httpd
+# タイムゾーンの設定を非対話的に行うための環境変数
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install apache and write hello world message
-RUN echo 'Hello World!' > /var/www/html/index.html
+# システムのアップデートと必要なパッケージのインストール
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    curl \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure apache
-RUN echo 'mkdir -p /var/run/httpd' >> /root/run_apache.sh && \
- echo 'mkdir -p /var/lock/httpd' >> /root/run_apache.sh && \
- echo '/usr/sbin/httpd -D FOREGROUND' >> /root/run_apache.sh && \
- chmod 755 /root/run_apache.sh
-
-EXPOSE 80
-
-CMD /root/run_apache.sh
+# コンテナ起動時のコマンドを指定
+CMD ["/bin/bash"]

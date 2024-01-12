@@ -11,10 +11,10 @@ phases:
     - IMAGE=$REPO:latest
   build:
     commands:
-    - docker build -t 730054542356.dkr.ecr.ap-northeast-1.amazonaws.com/example:latest .
-    - docker push 730054542356.dkr.ecr.ap-northeast-1.amazonaws.com/example:latest
+    - docker build -t $IMAGE .
+    - docker push $IMAGE
   post_build:
     commands:
-    - printf '[{"name":"example","imageUri":"%s"}]' 730054542356.dkr.ecr.ap-northeast-1.amazonaws.com/example:latest > imagedefinitions.json
+    - printf '[{"name":"example","imageUri":"%s"}]' $IMAGE > imagedefinitions.json
 artifacts:
   files: imagedefinitions.json
